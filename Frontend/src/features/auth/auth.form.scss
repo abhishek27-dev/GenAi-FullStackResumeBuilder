@@ -1,0 +1,230 @@
+@use "sass:color";
+
+$bg-page: #0d1117;
+$bg-card: #161b22;
+$bg-input: #1f2737;
+$border-color: #2a3348;
+$text-primary: #e6edf3;
+$text-muted: #7d8590;
+$accent: #ff2d78;
+
+.auth-page {
+    min-height: 100vh;
+    width: 100%;
+    background: radial-gradient(circle at 50% 20%, #1e2638 0%, $bg-page 60%);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 2rem 1.5rem;
+    box-sizing: border-box;
+
+    .auth-card {
+        width: 100%;
+        max-width: 440px;
+        background-color: rgba(22, 27, 34, 0.85);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border: 1px solid $border-color;
+        border-radius: 1.25rem;
+        padding: 2.5rem 2rem;
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.05);
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+        animation: fadeInCard 0.4s ease-out;
+    }
+
+    .auth-header {
+        text-align: center;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.5rem;
+
+        .auth-logo-badge {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, $accent, #9b0638);
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 0.5rem;
+            box-shadow: 0 4px 16px rgba($accent, 0.4);
+        }
+
+        h1 {
+            font-size: 1.65rem;
+            font-weight: 700;
+            color: $text-primary;
+            letter-spacing: -0.02em;
+        }
+
+        .auth-subtitle {
+            font-size: 0.875rem;
+            color: $text-muted;
+            line-height: 1.5;
+            max-width: 320px;
+        }
+    }
+
+    .auth-error-banner {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        background-color: rgba(255, 77, 77, 0.12);
+        border: 1px solid rgba(255, 77, 77, 0.3);
+        color: #ff6b6b;
+        padding: 0.75rem 1rem;
+        border-radius: 0.6rem;
+        font-size: 0.85rem;
+        line-height: 1.4;
+
+        svg {
+            flex-shrink: 0;
+        }
+    }
+
+    .auth-form {
+        display: flex;
+        flex-direction: column;
+        gap: 1.15rem;
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.45rem;
+
+            label {
+                font-size: 0.825rem;
+                font-weight: 600;
+                color: $text-primary;
+            }
+
+            .input-wrapper {
+                position: relative;
+                display: flex;
+                align-items: center;
+
+                input {
+                    width: 100%;
+                    background-color: $bg-input;
+                    border: 1px solid $border-color;
+                    border-radius: 0.6rem;
+                    padding: 0.8rem 1rem;
+                    font-size: 0.9rem;
+                    color: $text-primary;
+                    outline: none;
+                    transition: all 0.2s ease;
+
+                    &::placeholder {
+                        color: rgba($text-muted, 0.7);
+                    }
+
+                    &:focus {
+                        border-color: $accent;
+                        box-shadow: 0 0 0 3px rgba($accent, 0.2);
+                        background-color: color.adjust($bg-input, $lightness: 2%);
+                    }
+                }
+            }
+        }
+
+        .auth-submit-btn {
+            margin-top: 0.5rem;
+            width: 100%;
+            padding: 0.85rem;
+            border-radius: 0.65rem;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            background: linear-gradient(135deg, $accent, #d20d3b);
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            transition: all 0.2s ease;
+
+            &:hover:not(:disabled) {
+                opacity: 0.92;
+                transform: translateY(-1px);
+                box-shadow: 0 4px 16px rgba($accent, 0.35);
+            }
+
+            &:disabled {
+                opacity: 0.7;
+                cursor: not-allowed;
+            }
+
+            .button-spinner {
+                width: 16px;
+                height: 16px;
+                border: 2px solid rgba(255, 255, 255, 0.3);
+                border-top-color: #fff;
+                border-radius: 50%;
+                animation: spin 0.8s linear infinite;
+            }
+        }
+    }
+
+    .auth-footer {
+        text-align: center;
+        padding-top: 0.5rem;
+        border-top: 1px solid rgba(255, 255, 255, 0.06);
+
+        p {
+            font-size: 0.875rem;
+            color: $text-muted;
+
+            a {
+                color: $accent;
+                text-decoration: none;
+                font-weight: 600;
+                margin-left: 0.25rem;
+                transition: color 0.2s;
+
+                &:hover {
+                    color: color.adjust($accent, $lightness: 10%);
+                    text-decoration: underline;
+                }
+            }
+        }
+    }
+
+    .auth-loading-spinner {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 1rem;
+        color: $text-muted;
+
+        .spinner {
+            width: 36px;
+            height: 36px;
+            border: 3px solid rgba($accent, 0.2);
+            border-top-color: $accent;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+    }
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes fadeInCard {
+    from {
+        opacity: 0;
+        transform: translateY(12px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

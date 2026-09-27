@@ -1,0 +1,160 @@
+$bg-navbar: rgba(22, 27, 34, 0.85);
+$border-color: #2a3348;
+$text-primary: #e6edf3;
+$text-muted: #7d8590;
+$accent: #ff2d78;
+
+.site-navbar {
+    width: 100%;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: $bg-navbar;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid $border-color;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+
+    .navbar-container {
+        max-width: 1280px;
+        margin: 0 auto;
+        padding: 0.85rem 1.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .navbar-brand {
+        display: flex;
+        align-items: center;
+        gap: 0.65rem;
+        text-decoration: none;
+        color: $text-primary;
+        font-weight: 700;
+        font-size: 1.15rem;
+        transition: transform 0.2s ease;
+
+        &:hover {
+            transform: scale(1.02);
+        }
+
+        .brand-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 34px;
+            height: 34px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, $accent, #b80549);
+            color: #ffffff;
+            box-shadow: 0 2px 10px rgba($accent, 0.4);
+        }
+
+        .brand-highlight {
+            color: $accent;
+            background: linear-gradient(90deg, $accent, #ff75a4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+    }
+
+    .navbar-nav {
+        display: flex;
+        align-items: center;
+        gap: 1.25rem;
+
+        .nav-link {
+            color: $text-muted;
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 500;
+            padding: 0.4rem 0.8rem;
+            border-radius: 6px;
+            transition: all 0.2s;
+
+            &:hover {
+                color: $text-primary;
+                background-color: rgba(255, 255, 255, 0.05);
+            }
+        }
+
+        .user-badge {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid $border-color;
+            padding: 0.35rem 0.8rem 0.35rem 0.4rem;
+            border-radius: 20px;
+
+            .user-avatar {
+                width: 26px;
+                height: 26px;
+                border-radius: 50%;
+                background: linear-gradient(135deg, #4f46e5, $accent);
+                color: #ffffff;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 0.75rem;
+                font-weight: 700;
+            }
+
+            .user-name {
+                font-size: 0.85rem;
+                font-weight: 500;
+                color: $text-primary;
+            }
+        }
+
+        .logout-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.45rem;
+            background: rgba(255, 68, 68, 0.1);
+            color: #ff6b6b;
+            border: 1px solid rgba(255, 68, 68, 0.25);
+            padding: 0.4rem 0.85rem;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+
+            &:hover {
+                background: rgba(255, 68, 68, 0.2);
+                border-color: rgba(255, 68, 68, 0.5);
+                transform: translateY(-1px);
+            }
+
+            &:active {
+                transform: translateY(0);
+            }
+        }
+
+        .auth-links {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+
+            .nav-btn {
+                padding: 0.45rem 1rem;
+                border-radius: 8px;
+                font-size: 0.85rem;
+                font-weight: 600;
+                text-decoration: none;
+                transition: all 0.2s;
+
+                &.primary-nav-btn {
+                    background: linear-gradient(135deg, $accent, #d20d3b);
+                    color: white;
+
+                    &:hover {
+                        opacity: 0.92;
+                        box-shadow: 0 4px 12px rgba($accent, 0.35);
+                    }
+                }
+            }
+        }
+    }
+}
