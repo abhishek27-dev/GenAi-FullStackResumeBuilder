@@ -32,6 +32,7 @@ Thumbs.db
 *.njsproj
 *.sln
 
-# Local Study Guides & Notes
+# Local Study Guides & Generated Files
 PROJECT_STUDY_GUIDE.md
-
+PROJECT_STUDY_GUIDE.pdf
+*.pdf
