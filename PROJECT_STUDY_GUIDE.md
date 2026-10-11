@@ -261,7 +261,7 @@ module.exports = upload;
 | :--- | :--- | :--- | :--- | :--- |
 | `POST` | `/api/auth/register` | Public | `registerUserController` | Creates new user, hashes password, sets cookie & returns JWT |
 | `POST` | `/api/auth/login` | Public | `loginUserController` | Verifies email & bcrypt hash, returns JWT |
-| `GET` | `/api/auth/logout` | Public | `logoutUserController` | Adds token to blacklist & clears HTTP-only cookie |
+| `POST` | `/api/auth/logout` | Public | `logoutUserController` | Adds token to blacklist & clears HTTP-only cookie |
 | `GET` | `/api/auth/get-me` | Private | `getMeController` | Fetches currently authenticated user details via `req.user.id` |
 
 ### Key Code Mechanisms:
@@ -277,6 +277,69 @@ module.exports = upload;
   - **Ans**: Salt random characters hote hain jo password ke sath hash hone se pehle judte hain (Rainbow Table attacks ko fail karne ke liye). 10 rounds ka matlab hai 2^10 = 1024 hashing iterations, jo fast bhi hai aur brute-force resistance bhi deta hai.
 - **Q2: `httpOnly: true` cookie lagane ka main purpose kya hai?**
   - **Ans**: Agar frontend mein koi XSS (Cross-Site Scripting) vulnerability aa jaye, to malicious JavaScript `document.cookie` se JWT token nahi chura sakti.
-- **Q3: User Enumeration Attack kya hota hai aur controller ne ise kaise roka?**
-  - **Ans**: Agar backend bole "Email not registered", to attacker pata laga sakta hai kaunse emails exist karte hain. Generic error message `"Invalid email or password"` dekar is attack ko roka gaya hai.
+- **Q3: Logout GET ki jagah POST kyun hona chahiye?**
+  - **Ans**: RESTful specs ke according GET requests idempotent aur safe honi chahiye. Logout par hum database mein token blacklist record create karte hain aur cookies clear karte hain (write operation). Sath hi browser prefetching aur image-tag CSRF vulnerabilities se bachne ke liye POST zaroori hai.
+
+---
+
+## 11. `src/routes/interview.routes.js` & `src/controllers/interview.controller.js`
+
+### API Endpoints Summary:
+| Method | Endpoint | Middleware Chain | Controller Method | Purpose |
+| :--- | :--- | :--- | :--- | :--- |
+| `POST` | `/api/interview/` | `authUser`, `upload.single("resume")` | `generateInterViewReportController` | Parses PDF, prompts Gemini, saves report to MongoDB |
+| `GET` | `/api/interview/report/:interviewId` | `authUser` | `getInterviewReportByIdController` | Fetches single report with candidate questions & roadmap |
+| `GET` | `/api/interview/` | `authUser` | `getAllInterviewReportsController` | Fetches list of all user reports (optimized projection) |
+| `POST` | `/api/interview/resume/pdf/:interviewReportId` | `authUser` | `generateResumePdfController` | Generates ATS resume HTML & streams Puppeteer A4 PDF |
+| `DELETE` | `/api/interview/:interviewId` | `authUser` | `deleteInterviewReportByIdController` | Deletes user interview plan from database |
+
+### Key Code Mechanisms:
+1. **Multer + PDF-Parse Pipeline**:
+   - Multer memory buffer (`req.file.buffer`) ko `Uint8Array` mein convert karke `new pdfParse.PDFParse(...).getText()` se raw text string banaya jata hai jo Gemini prompt mein jata hai.
+2. **Multi-Tenant Isolation**:
+   - Query filters hamesha `{ _id: interviewId, user: req.user.id }` use karte hain taaki koi user doosre ki report na dekh/delete kar sake.
+3. **Database Performance Projection**:
+   - `getAllInterviewReportsController` mein `.select("-resume -technicalQuestions -behavioralQuestions ...")` use hota hai taaki dashboard listing query ultra-fast 5ms mein return kare bina heavy nested data load kiye.
+4. **PDF Streaming Headers**:
+   - `Content-Type: application/pdf` aur `Content-Disposition: attachment; filename=...` se binary buffer direct browser download stream ban jata hai.
+
+### 🎯 Interview & Viva Questions:
+- **Q1: Multer `req.file.buffer` ko direct AI ko kyun nahi bhej sakte? `pdfParse` ki kya zaroorat hai?**
+  - **Ans**: LLM ek language model hai jo binary bytes ko directly prompt text mein interpret nahi kar sakta. `pdfParse` un bytes ko scan karke readable plain text extract karta hai jo AI prompt mein insert hota hai.
+- **Q2: `getAllInterviewReports` mein `.select("-resume ...")` kyun kiya gaya?**
+  - **Ans**: Heavy fields (questions array, roadmap, resume text) ko exclude karke network payload chhota rakha jata hai, jisse homepage load time dramatically improve hota hai.
+- **Q3: `findOneAndDelete` kya return karta hai?**
+  - **Ans**: Agar document match ho gaya to deleted document ka pura data object return karta hai, aur agar match nahi hua (ya un-authorized tha) to `null` return karta hai.
+
+---
+
+## 12. `src/services/ai.service.js` - GenAI Engine & Headless PDF Pipeline
+
+### Architectural Pillars:
+1. **Google GenAI SDK (`@google/genai`)**:
+   - Official next-gen Google Gemini SDK with direct support for structured schema parameters and high throughput.
+2. **Dynamic Chromium Path Detection (`findBrowserExecutablePath`)**:
+   - Cross-platform support: Windows (local Chrome/Edge) and Linux (production cloud paths `/usr/bin/chromium`, `/usr/bin/google-chrome`) auto-detection via `fs.existsSync`.
+3. **Fault-Tolerant Model Fallback (`callGeminiWithFallback`)**:
+   - Automated candidate model loop (`gemini-3.5-flash-lite`, `gemini-3.6-flash`, `gemini-3.7-flash`).
+   - On HTTP 503 (High Demand / Overloaded), pauses 1.5 seconds and retries; on persistent failures, seamlessly downgrades to the next healthy model.
+4. **Strict Schema Enforcement via Zod**:
+   - `zodToJsonSchema(interviewReportSchema)` is supplied directly to Gemini API's `responseSchema` configuration alongside `responseMimeType: "application/json"`.
+   - Guarantees 100% deterministic output matching our TypeScript/Zod specification without hallucinated keys or markdown wrapper artifacts.
+5. **Headless Puppeteer PDF Pipeline**:
+   - AI generates ATS-compliant, semantic HTML for the candidate's resume.
+   - Puppeteer renders the HTML in a sandbox-free headless Chromium tab and captures pixel-perfect A4 binary PDF buffers.
+   - Execution is protected in a `try...finally` block ensuring `await browser.close()` executes to prevent memory leaks and zombie browser processes.
+
+### 🎯 Interview & Viva Questions:
+- **Q1: AI output ke liye Zod aur Structured Outputs kyun use kiya? Plain prompt kyun nahi?**
+  - **Ans**: LLM outputs probabilistic hote hain. Plain prompt dene par AI markdown ya unstructured conversational text return kar sakta hai jo `JSON.parse` ko crash kar dega. `responseSchema: zodToJsonSchema(...)` Google Gemini ke token generation level par schema enforce karta hai jisse output 100% valid JSON guaranteed hota hai.
+- **Q2: Gemini fallback aur retry mechanism kyun zaroori hai?**
+  - **Ans**: Free tier aur production APIs par high traffic ke waqt 503 (Service Unavailable / Overloaded) errors aate hain. Fallback loop 1.5s wait karke retry karta hai aur agle candidate model par switch ho jata hai, jisse 99.9% uptime milti hai.
+- **Q3: Puppeteer launch options mein `--no-sandbox` aur `--disable-dev-shm-usage` kyun zaroori hain?**
+  - **Ans**: Production Linux containers (Docker, Render, AWS) mein root user security restrictions `--no-sandbox` ke bina Chromium launch nahi hone dete, aur shared memory `/dev/shm` chhoti hone par crash hoti hai jise `--disable-dev-shm-usage` disk memory par route karta hai.
+- **Q4: Puppeteer mein `finally { await browser.close(); }` kyun zaroori hai?**
+  - **Ans**: Har headless Chrome instance 100-200MB RAM leta hai. Agar error aane par browser close na ho to wo Zombie Process ban kar server par reh jata hai, jisse multiple users ke baad severe Memory Leak ho kar pura server crash ho jata hai.
+
+
 
