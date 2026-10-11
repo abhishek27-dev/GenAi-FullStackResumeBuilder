@@ -1,14 +1,17 @@
 import { useAuth } from "../hooks/useAuth";
 import { Navigate } from "react-router";
-import React from "react";
+import "../auth.form.scss";
 
 const Protected = ({ children }) => {
     const { loading, user } = useAuth();
 
     if (loading) {
         return (
-            <main>
-                <h1>Loading...</h1>
+            <main className="auth-page">
+                <div className="auth-loading-spinner">
+                    <div className="spinner"></div>
+                    <p>Authenticating...</p>
+                </div>
             </main>
         );
     }
