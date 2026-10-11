@@ -31,3 +31,7 @@ Thumbs.db
 *.ntvs*
 *.njsproj
 *.sln
+
+# Local Study Guides & Notes
+PROJECT_STUDY_GUIDE.md
+
