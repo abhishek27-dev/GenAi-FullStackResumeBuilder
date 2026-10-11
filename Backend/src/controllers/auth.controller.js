@@ -118,7 +118,11 @@ async function loginUserController(req, res) {
  */
 async function logoutUserController(req, res) {
     let token = req.cookies.token;
-    if (!token && req.headers.authorization && req.headers.authorization.startsWith("Bearer ")) {
+    if (
+        !token &&
+        req.headers.authorization &&
+        req.headers.authorization.startsWith("Bearer ")
+    ) {
         token = req.headers.authorization.split(" ")[1];
     }
 
