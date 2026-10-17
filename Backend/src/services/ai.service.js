@@ -3,6 +3,29 @@ const { z } = require("zod");
 const { zodToJsonSchema } = require("zod-to-json-schema");
 const puppeteer = require("puppeteer");
 const fs = require("fs");
+const path = require("path");
+
+function findExecutableInDir(dir) {
+    if (!dir || !fs.existsSync(dir)) return null;
+    try {
+        const entries = fs.readdirSync(dir, { withFileTypes: true });
+        for (const entry of entries) {
+            const fullPath = path.join(dir, entry.name);
+            if (entry.isDirectory()) {
+                const found = findExecutableInDir(fullPath);
+                if (found) return found;
+            } else if (
+                entry.name === "chrome" ||
+                entry.name === "chrome.exe" ||
+                entry.name === "chromium" ||
+                entry.name === "msedge.exe"
+            ) {
+                return fullPath;
+            }
+        }
+    } catch {}
+    return null;
+}
 
 function findBrowserExecutablePath() {
     // 1. Explicit path from environment (if set)
@@ -10,26 +33,54 @@ function findBrowserExecutablePath() {
         return process.env.PUPPETEER_EXECUTABLE_PATH;
     }
 
-    // 2. Puppeteer's installed cache (for Render / Linux deployment)
-    try {
-        const defaultPath = puppeteer.executablePath();
-        if (defaultPath && fs.existsSync(defaultPath)) return defaultPath;
-    } catch {}
+    // 2. Windows system installations (Chrome, Edge)
+    if (process.platform === "win32") {
+        const winCandidates = [
+            "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+            "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
+            process.env.LOCALAPPDATA ? path.join(process.env.LOCALAPPDATA, "Google\\Chrome\\Application\\chrome.exe") : null,
+            "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
+            "C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe",
+            process.env.LOCALAPPDATA ? path.join(process.env.LOCALAPPDATA, "Microsoft\\Edge\\Application\\msedge.exe") : null,
+        ].filter(Boolean);
 
-    // 3. System browser locations (for local development on Windows / Linux)
-    const candidates = [
-        "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
-        "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
-        "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
+        for (const p of winCandidates) {
+            if (fs.existsSync(p)) return p;
+        }
+    }
+
+    // 3. Linux system browser locations (Debian / Ubuntu / Docker)
+    const linuxCandidates = [
         "/usr/bin/google-chrome-stable",
         "/usr/bin/google-chrome",
         "/usr/bin/chromium-browser",
         "/usr/bin/chromium",
     ];
-
-    for (const p of candidates) {
+    for (const p of linuxCandidates) {
         if (fs.existsSync(p)) return p;
     }
+
+    // 4. Puppeteer's resolved executable path (if installed via CLI)
+    try {
+        const defaultPath = puppeteer.executablePath();
+        if (defaultPath && fs.existsSync(defaultPath)) return defaultPath;
+    } catch {}
+
+    // 5. Persistent cache directories (Render / Cloud container deployments)
+    const cacheDirectories = [
+        process.env.PUPPETEER_CACHE_DIR,
+        "/opt/render/.cache/puppeteer",
+        "/opt/render/project/src/Backend/.cache/puppeteer",
+        "/opt/render/project/src/.cache/puppeteer",
+        path.join(__dirname, "../../.cache/puppeteer"),
+        path.join(process.cwd(), ".cache/puppeteer"),
+    ].filter(Boolean);
+
+    for (const dir of cacheDirectories) {
+        const found = findExecutableInDir(dir);
+        if (found) return found;
+    }
+
     return undefined;
 }
 
@@ -208,7 +259,7 @@ async function generateInterviewReport({
 async function generatePdfFromHtml(htmlContent) {
     const execPath = findBrowserExecutablePath();
     const launchOptions = {
-        headless: "new",
+        headless: true,
         args: [
             "--no-sandbox",
             "--disable-setuid-sandbox",
@@ -225,7 +276,23 @@ async function generatePdfFromHtml(htmlContent) {
         launchOptions.executablePath = execPath;
     }
 
-    const browser = await puppeteer.launch(launchOptions);
+    let browser;
+    try {
+        browser = await puppeteer.launch(launchOptions);
+    } catch (launchErr) {
+        console.warn("Puppeteer failed to launch with specified executablePath:", execPath, launchErr.message);
+        // Fallback: retry with default options if an explicit executablePath was tried
+        if (launchOptions.executablePath) {
+            delete launchOptions.executablePath;
+            try {
+                browser = await puppeteer.launch(launchOptions);
+            } catch (fallbackErr) {
+                throw new Error("Could not launch Chrome browser to generate PDF. " + (fallbackErr.message || launchErr.message));
+            }
+        } else {
+            throw launchErr;
+        }
+    }
 
     try {
         const page = await browser.newPage();
