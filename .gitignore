@@ -36,3 +36,5 @@ Thumbs.db
 PROJECT_STUDY_GUIDE.md
 PROJECT_STUDY_GUIDE.pdf
 *.pdf
+.cache/
+*/.cache/

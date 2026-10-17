@@ -127,7 +127,10 @@ export const useInterview = () => {
                 const errJson = JSON.parse(text);
                 throw new Error(errJson.message || "Failed to generate PDF");
             }
-            const blob = new Blob([response], { type: "application/pdf" });
+            const blob =
+                response instanceof Blob
+                    ? response
+                    : new Blob([response], { type: "application/pdf" });
             const url = window.URL.createObjectURL(blob);
             const link = document.createElement("a");
             link.href = url;

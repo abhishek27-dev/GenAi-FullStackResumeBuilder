@@ -31,6 +31,7 @@ app.use(
             return callback(null, true);
         },
         credentials: true,
+        exposedHeaders: ["Content-Disposition"],
     }),
 );
 
@@ -56,7 +57,7 @@ app.use((err, req, res, next) => {
     console.error("Unhandled error:", err);
     if (err.code === "LIMIT_FILE_SIZE") {
         return res.status(400).json({
-            message: "File size limit exceeded. Maximum file size is 5MB.",
+            message: "File size limit exceeded. Maximum file size is 3MB.",
         });
     }
     res.status(err.status || 500).json({

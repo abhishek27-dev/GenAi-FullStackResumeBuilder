@@ -5,8 +5,19 @@ const puppeteer = require("puppeteer");
 const fs = require("fs");
 
 function findBrowserExecutablePath() {
+    // 1. Explicit path from environment (if set)
+    if (process.env.PUPPETEER_EXECUTABLE_PATH && fs.existsSync(process.env.PUPPETEER_EXECUTABLE_PATH)) {
+        return process.env.PUPPETEER_EXECUTABLE_PATH;
+    }
+
+    // 2. Puppeteer's installed cache (for Render / Linux deployment)
+    try {
+        const defaultPath = puppeteer.executablePath();
+        if (defaultPath && fs.existsSync(defaultPath)) return defaultPath;
+    } catch {}
+
+    // 3. System browser locations (for local development on Windows / Linux)
     const candidates = [
-        process.env.PUPPETEER_EXECUTABLE_PATH,
         "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
         "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
         "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
@@ -14,7 +25,7 @@ function findBrowserExecutablePath() {
         "/usr/bin/google-chrome",
         "/usr/bin/chromium-browser",
         "/usr/bin/chromium",
-    ].filter(Boolean);
+    ];
 
     for (const p of candidates) {
         if (fs.existsSync(p)) return p;
@@ -33,6 +44,7 @@ function getAIClient() {
 
 const CANDIDATE_MODELS = [
     process.env.GEMINI_MODEL,
+    "gemini-2.5-flash",
     "gemini-3.5-flash-lite",
     "gemini-3.6-flash",
     "gemini-3.7-flash",
@@ -217,7 +229,10 @@ async function generatePdfFromHtml(htmlContent) {
 
     try {
         const page = await browser.newPage();
-        await page.setContent(htmlContent, { waitUntil: "networkidle0" });
+        await page.setContent(htmlContent, {
+            waitUntil: ["domcontentloaded", "load"],
+            timeout: 30000,
+        });
 
         const pdfBuffer = await page.pdf({
             format: "A4",
