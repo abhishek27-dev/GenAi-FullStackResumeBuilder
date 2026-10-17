@@ -1,7 +1,7 @@
 const { GoogleGenAI } = require("@google/genai");
 const { z } = require("zod");
 const { zodToJsonSchema } = require("zod-to-json-schema");
-const puppeteer = require("puppeteer");
+const puppeteer = require("puppeteer-core");
 const fs = require("fs");
 const path = require("path");
 
@@ -18,11 +18,13 @@ async function getBrowserLaunchConfig() {
     // 2. Linux Cloud / Serverless (Render / Docker)
     if (process.platform === "linux") {
         try {
-            const chromium = require("@sparticuz/chromium");
+            const rawChromium = require("@sparticuz/chromium");
+            const chromium = rawChromium.default || rawChromium;
+            const execPath = await chromium.executablePath();
             return {
-                executablePath: await chromium.executablePath(),
-                headless: chromium.headless,
-                args: chromium.args,
+                executablePath: execPath,
+                headless: true,
+                args: chromium.args || ["--no-sandbox", "--disable-setuid-sandbox"],
             };
         } catch (e) {
             console.warn("@sparticuz/chromium load warning:", e.message);
