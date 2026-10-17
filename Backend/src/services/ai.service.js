@@ -5,29 +5,54 @@ const puppeteer = require("puppeteer");
 const fs = require("fs");
 const path = require("path");
 
-function findBrowserExecutablePath() {
+async function getBrowserLaunchConfig() {
     // 1. Explicit path from environment (if set)
     if (process.env.PUPPETEER_EXECUTABLE_PATH) {
-        return process.env.PUPPETEER_EXECUTABLE_PATH;
+        return {
+            executablePath: process.env.PUPPETEER_EXECUTABLE_PATH,
+            headless: true,
+            args: ["--no-sandbox", "--disable-setuid-sandbox"],
+        };
     }
 
-    // 2. Puppeteer's installed cache (for Linux / Render)
-    try {
-        const defaultPath = puppeteer.executablePath();
-        if (defaultPath && fs.existsSync(defaultPath)) return defaultPath;
-    } catch {}
+    // 2. Linux Cloud / Serverless (Render / Docker)
+    if (process.platform === "linux") {
+        try {
+            const chromium = require("@sparticuz/chromium");
+            return {
+                executablePath: await chromium.executablePath(),
+                headless: chromium.headless,
+                args: chromium.args,
+            };
+        } catch (e) {
+            console.warn("@sparticuz/chromium load warning:", e.message);
+        }
+    }
 
-    // 3. System browser locations (Windows & Linux local dev)
-    const candidates = [
+    // 3. Local Development (Windows & Mac)
+    const localBrowsers = [
         "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
         "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
         "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
         "/usr/bin/google-chrome",
         "/usr/bin/chromium",
-        "/usr/bin/chromium-browser",
     ];
 
-    return candidates.find((p) => fs.existsSync(p));
+    const execPath = localBrowsers.find((p) => fs.existsSync(p));
+    return {
+        executablePath: execPath,
+        headless: true,
+        args: [
+            "--no-sandbox",
+            "--disable-setuid-sandbox",
+            "--disable-dev-shm-usage",
+            "--disable-accelerated-2d-canvas",
+            "--no-first-run",
+            "--no-zygote",
+            "--single-process",
+            "--disable-gpu",
+        ],
+    };
 }
 
 
@@ -203,42 +228,8 @@ async function generateInterviewReport({
 }
 
 async function generatePdfFromHtml(htmlContent) {
-    const execPath = findBrowserExecutablePath();
-    const launchOptions = {
-        headless: true,
-        args: [
-            "--no-sandbox",
-            "--disable-setuid-sandbox",
-            "--disable-dev-shm-usage",
-            "--disable-accelerated-2d-canvas",
-            "--no-first-run",
-            "--no-zygote",
-            "--single-process",
-            "--disable-gpu",
-        ],
-    };
-
-    if (execPath) {
-        launchOptions.executablePath = execPath;
-    }
-
-    let browser;
-    try {
-        browser = await puppeteer.launch(launchOptions);
-    } catch (launchErr) {
-        console.warn("Puppeteer failed to launch with specified executablePath:", execPath, launchErr.message);
-        // Fallback: retry with default options if an explicit executablePath was tried
-        if (launchOptions.executablePath) {
-            delete launchOptions.executablePath;
-            try {
-                browser = await puppeteer.launch(launchOptions);
-            } catch (fallbackErr) {
-                throw new Error("Could not launch Chrome browser to generate PDF. " + (fallbackErr.message || launchErr.message));
-            }
-        } else {
-            throw launchErr;
-        }
-    }
+    const launchOptions = await getBrowserLaunchConfig();
+    const browser = await puppeteer.launch(launchOptions);
 
     try {
         const page = await browser.newPage();
