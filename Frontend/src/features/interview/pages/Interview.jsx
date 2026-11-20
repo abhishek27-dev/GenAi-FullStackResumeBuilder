@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import "../style/interview.scss";
+import "../style/interview.css";
 import { useInterview } from "../hooks/useInterview.js";
 import { useNavigate, useParams, Link } from "react-router";
 import Navbar from "../../../components/Navbar.jsx";
@@ -242,15 +242,15 @@ const Interview = () => {
         report.matchScore >= 80
             ? "score--high"
             : report.matchScore >= 60
-              ? "score--mid"
-              : "score--low";
+                ? "score--mid"
+                : "score--low";
 
     const scoreLabel =
         report.matchScore >= 80
             ? "Strong match for this role"
             : report.matchScore >= 60
-              ? "Moderate match - Focus on gaps"
-              : "High gap - Requires intensive prep";
+                ? "Moderate match - Focus on gaps"
+                : "High gap - Requires intensive prep";
 
     return (
         <div className="interview-page-wrapper">

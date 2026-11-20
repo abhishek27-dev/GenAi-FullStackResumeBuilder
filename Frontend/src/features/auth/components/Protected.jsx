@@ -1,6 +1,6 @@
 import { useAuth } from "../hooks/useAuth";
 import { Navigate } from "react-router";
-import "../auth.form.scss";
+import "../auth.form.css";
 
 const Protected = ({ children }) => {
     const { loading, user } = useAuth();

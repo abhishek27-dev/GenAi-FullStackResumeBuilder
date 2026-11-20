@@ -1,7 +1,7 @@
 import React from "react";
 import { Link, useNavigate, useLocation } from "react-router";
 import { useAuth } from "../features/auth/hooks/useAuth";
-import "./navbar.scss";
+import "./navbar.css";
 
 const Navbar = () => {
     const { user, handleLogout } = useAuth();
